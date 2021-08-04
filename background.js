@@ -20,6 +20,9 @@ async function updateBadgeTabCounter(eventTabId, isOnRemoved) {
   badgeBgColor = (tabCount > 9) ? 'orange' : badgeBgColor;
   badgeBgColor = (tabCount > 19) ? 'red' : badgeBgColor;
   browser.browserAction.setBadgeBackgroundColor({'color': badgeBgColor});
+  var badgeTextColor = 'white';
+  badgeTextColor = (tabCount > 9 && tabCount < 20) ? 'black' : badgeTextColor;
+  browser.browserAction.setBadgeTextColor({'color': badgeTextColor});
 }
 
 browser.tabs.onRemoved.addListener((tabId) => { updateBadgeTabCounter(tabId, true); }); // [1]
