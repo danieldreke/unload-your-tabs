@@ -8,7 +8,8 @@
       "scripts": ["background.js"]
   },
   "browser_action": {
-    "browser_style": true
+    "browser_style": true,
+    "default_popup": "main.html"
   },
   "description": "Unload your tabs.",
   "manifest_version": 2,
