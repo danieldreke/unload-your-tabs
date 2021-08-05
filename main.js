@@ -1,3 +1,18 @@
+async function addAndActivateBlankTab(window) {
+  var hasBlankTab = false;
+  for (var tab of window.tabs) {
+    var isBlankTab = tab.url === 'about:newtab';
+    if (isBlankTab) {
+      hasBlankTab = true;
+      browser.tabs.update(tab.id, { active: true });
+      break;
+    }
+  }
+  if (!hasBlankTab) {
+    browser.tabs.create({ windowId: window.id, active: true });
+  }
+}
+
 async function addAndActivateBlankTabs(skipActiveWindow=false) {
   var windows = await browser.windows.getAll({ populate: true });
   for (var window of windows) {
@@ -5,18 +20,7 @@ async function addAndActivateBlankTabs(skipActiveWindow=false) {
     if (skipWindow) {
       continue;
     }
-    var hasBlankTab = false;
-    for (var tab of window.tabs) {
-      var isBlankTab = tab.url === "about:newtab";
-      if (isBlankTab) {
-        hasBlankTab = true;
-        browser.tabs.update(tab.id, { active: true });
-        break;
-      }
-    }
-    if (!hasBlankTab) {
-      browser.tabs.create({ windowId: window.id, active: true });
-    }
+    await addAndActivateBlankTab(window);
   }
 }
 
