@@ -159,10 +159,24 @@ async function removeTabLink(eventTabId) {
   }
 }
 
+// problem: if popup is opened while tabs are still loading
+//   corresponding favicons are not loaded properly
+// solution: once tab is loaded reset image src
+//   unfortunately it doesn't work 100% (2021-8-6)
+async function updateTabIcon(eventTabId) {
+  var tabIcon = document.getElementById(`icon${eventTabId}`);
+  var tab = await browser.tabs.get(eventTabId);
+  console.log('updateTabIcon', tab.id, tab.status, tab.url);
+  var isTabLoaded = tab.status === 'complete';
+  if (isTabLoaded) {
+    tabIcon.setAttribute('src', tab.favIconUrl);
+  }
+}
+
 document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
 document.getElementById('keep-active-tab').addEventListener('click', unloadAllTabsExceptActiveTab);
 document.getElementById('keep-active-window').addEventListener('click', unloadAllTabsExceptActiveWindow);
 document.getElementById('toggle-tab-list').addEventListener('click', toggleTabList);
 
 browser.tabs.onUpdated.addListener(removeTabLink, { properties: ['discarded'] });
-//browser.tabs.onUpdated.addListener(showUnloadableTabs, { properties: ['status'] });
+browser.tabs.onUpdated.addListener(updateTabIcon, { properties: ['status'] });
