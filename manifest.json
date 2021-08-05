@@ -17,5 +17,8 @@
   "permissions": [
     "tabs"
   ],
-  "version": "0.1"
+  "version": "0.1",
+  "icons": {
+    "64": "icons/favicon-240.png"
+  }
 }
