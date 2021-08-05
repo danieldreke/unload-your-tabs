@@ -71,6 +71,18 @@ function isAboutTab(tab) {
   return result;
 }
 
+async function focusWindow(e) {
+  var window = e.currentTarget.window;
+  await browser.windows.update(window.id, { focused: true });
+}
+
+async function focusTab(e) {
+  var tab = e.currentTarget.tab;
+  var window = e.currentTarget.window;
+  await browser.tabs.update(tab.id, { active: true });
+  await browser.windows.update(window.id, { focused: true });
+}
+
 async function showUnloadableTabs() {
   var tabList = document.getElementById('tab-list');
   tabList.textContent = '';
@@ -91,6 +103,7 @@ async function showUnloadableTabs() {
           windowLink.classList.add('bold');
           windowLink.window = window;
           windowLink.addEventListener('click', unloadWindowTabs);
+          windowLink.addEventListener('contextmenu', focusWindow);
           tabList.appendChild(windowLink);
         }
         // create tab link
@@ -102,6 +115,7 @@ async function showUnloadableTabs() {
         tabLink.window = window;
         tabLink.tab = tab;
         tabLink.addEventListener('click', unloadTab);
+        tabLink.addEventListener('contextmenu', focusTab);
 
         let tabIcon = document.createElement('img');
         tabIcon.setAttribute('id', `icon${tab.id}`);
@@ -180,3 +194,6 @@ document.getElementById('toggle-tab-list').addEventListener('click', toggleTabLi
 
 browser.tabs.onUpdated.addListener(removeTabLink, { properties: ['discarded'] });
 browser.tabs.onUpdated.addListener(updateTabIcon, { properties: ['status'] });
+
+// cancel default menu
+window.oncontextmenu = function() { return false; }
