@@ -24,11 +24,33 @@ async function addAndActivateBlankTabs(skipActiveWindow=false) {
   }
 }
 
+async function focusTabIfUndiscarded(tabId) {
+  var tab = await browser.tabs.get(tabId);
+  if (!tab.discarded) {
+    await browser.tabs.update(tabId, { active: true });
+    await browser.windows.update(tab.windowId, { focused: true });
+    //await browser.tabs.reload(tabId);
+  }
+}
+
+async function focusFirstUndiscardableTab() {
+  var tabs = await browser.tabs.query({ discarded: false });
+  if (tabs.length > 0) {
+    for (var tab of tabs) {
+      if (!isAboutTab(tab)) {
+        await focusTabIfUndiscarded(tab.id);
+        break;
+      }
+    }
+  }
+}
+
 async function unloadAllTabs() {
   await addAndActivateBlankTabs();
   var tabs = await browser.tabs.query({});
   var tabIds = tabs.map((tab) => tab.id);
   await browser.tabs.discard(tabIds);
+  await focusFirstUndiscardableTab();
   window.close();
 }
 
@@ -51,10 +73,13 @@ async function unloadAllTabsExceptActiveWindow() {
 
 async function unloadTab(e) {
   var tabLink = e.currentTarget;
-  if (tabLink.tab.active) {
+  var tabId = tabLink.tab.id;
+  var tab = await browser.tabs.get(tabId);
+  if (tab.active) {
     await addAndActivateBlankTab(tabLink.window);
   }
-  await browser.tabs.discard(tabLink.tabId);
+  await browser.tabs.discard(tabId);
+  focusTabIfUndiscarded(tabId);
 }
 
 async function unloadWindowTabs(e) {
@@ -64,6 +89,7 @@ async function unloadWindowTabs(e) {
   var tabIds = tabs.map((tab) => tab.id);
   await addAndActivateBlankTab(window);
   await browser.tabs.discard(tabIds);
+  await focusFirstUndiscardableTab();
 }
 
 function isAboutTab(tab) {
@@ -180,7 +206,6 @@ async function removeTabLink(eventTabId) {
 async function updateTabIcon(eventTabId) {
   var tabIcon = document.getElementById(`icon${eventTabId}`);
   var tab = await browser.tabs.get(eventTabId);
-  console.log('updateTabIcon', tab.id, tab.status, tab.url);
   var isTabLoaded = tab.status === 'complete';
   if (isTabLoaded) {
     tabIcon.setAttribute('src', tab.favIconUrl);
