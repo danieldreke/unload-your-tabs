@@ -71,12 +71,30 @@ async function unloadAllTabsExceptActiveWindow() {
   await browser.tabs.discard(tabIds);
 }
 
+async function activateAlternativeLoadedTab(_windowId, activeTabId) {
+  var tabs = await browser.tabs.query({ windowId: _windowId, discarded: false });
+  var alternativeTabActivated = false;
+  for (var tab of tabs) {
+    var isActiveTab = tab.id == activeTabId;
+    if (!isAboutTab(tab) && !isActiveTab) {
+      await browser.tabs.update(tab.id, { active: true });
+      alternativeTabActivated = true;
+      break;
+    }
+  }
+  return alternativeTabActivated;
+}
+
 async function unloadTab(e) {
   var tabLink = e.currentTarget;
   var tabId = tabLink.tab.id;
   var tab = await browser.tabs.get(tabId);
+  var windowId = tab.windowId;
   if (tab.active) {
-    await addAndActivateBlankTab(tabLink.window.id);
+    var alternativeTabActivated = await activateAlternativeLoadedTab(windowId, tab.id);
+    if (!alternativeTabActivated) {
+      await addAndActivateBlankTab(windowId);
+    }
   }
   await browser.tabs.discard(tabId);
   focusTabIfUndiscarded(tabId);
@@ -226,20 +244,10 @@ async function unloadActiveWindow() {
 async function unloadActiveTab() {
   var activeTabs = await browser.tabs.query({ currentWindow: true, active: true });
   var activeTab = activeTabs[0];
-  var window = await browser.windows.getCurrent();
-  var tabs = await browser.tabs.query({ currentWindow: true, discarded: false });
-  // activate another loaded non-about tab if exists otherwise activate blank tab
-  var activateBlankTab = true;
-  for (var tab of tabs) {
-    var isActiveTab = tab.id == activeTab.id;
-    if (!isAboutTab(tab) && !isActiveTab) {
-      await browser.tabs.update(tab.id, { active: true });
-      activateBlankTab = false;
-      break;
-    }
-  }
-  if (activateBlankTab) {
-    await addAndActivateBlankTab(window.id);
+  var windowId = activeTab.windowId;
+  var alternativeTabActivated = await activateAlternativeLoadedTab(windowId, activeTab.id);
+  if (!alternativeTabActivated) {
+    await addAndActivateBlankTab(windowId);
   }
   await browser.tabs.discard(activeTab.id);
 }
