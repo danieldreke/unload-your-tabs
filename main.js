@@ -223,10 +223,32 @@ async function unloadActiveWindow() {
   }
 }
 
+async function unloadActiveTab() {
+  var activeTabs = await browser.tabs.query({ currentWindow: true, active: true });
+  var activeTab = activeTabs[0];
+  var window = await browser.windows.getCurrent();
+  var tabs = await browser.tabs.query({ currentWindow: true, discarded: false });
+  // activate another loaded non-about tab if exists otherwise activate blank tab
+  var activateBlankTab = true;
+  for (var tab of tabs) {
+    var isActiveTab = tab.id == activeTab.id;
+    if (!isAboutTab(tab) && !isActiveTab) {
+      await browser.tabs.update(tab.id, { active: true });
+      activateBlankTab = false;
+      break;
+    }
+  }
+  if (activateBlankTab) {
+    await addAndActivateBlankTab(window.id);
+  }
+  await browser.tabs.discard(activeTab.id);
+}
+
 document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
 document.getElementById('keep-active-tab').addEventListener('click', unloadAllTabsExceptActiveTab);
 document.getElementById('keep-active-window').addEventListener('click', unloadAllTabsExceptActiveWindow);
 document.getElementById('unload-active-window').addEventListener('click', unloadActiveWindow);
+document.getElementById('unload-active-tab').addEventListener('click', unloadActiveTab);
 document.getElementById('toggle-tab-list').addEventListener('click', toggleTabList);
 
 browser.tabs.onUpdated.addListener(removeTabLink, { properties: ['discarded'] });
