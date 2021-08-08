@@ -2,7 +2,7 @@ async function addAndActivateBlankTab(windowId) {
   var window = await browser.windows.get(windowId, { populate: true });
   var hasBlankTab = false;
   for (var tab of window.tabs) {
-    var isBlankTab = tab.url === 'about:newtab';
+    var isBlankTab = tab.url === 'about:newtab' || tab.url === 'about:home';
     if (isBlankTab) {
       hasBlankTab = true;
       await browser.tabs.update(tab.id, { active: true });
@@ -244,6 +244,9 @@ async function unloadActiveWindow() {
 async function unloadActiveTab() {
   var activeTabs = await browser.tabs.query({ currentWindow: true, active: true });
   var activeTab = activeTabs[0];
+  if (isAboutTab(activeTab)) {
+    return;
+  }
   var windowId = activeTab.windowId;
   var alternativeTabActivated = await activateAlternativeLoadedTab(windowId, activeTab.id);
   if (!alternativeTabActivated) {
