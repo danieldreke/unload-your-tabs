@@ -1,25 +1,23 @@
-async function addAndActivateBlankTab(windowId) {
+async function activateBlankTab(windowId, addIfNotExists=true) {
   var window = await browser.windows.get(windowId, { populate: true });
-  var hasBlankTab = false;
   for (var tab of window.tabs) {
     var isBlankTab = tab.url === 'about:newtab' || tab.url === 'about:home';
     if (isBlankTab) {
-      hasBlankTab = true;
       await browser.tabs.update(tab.id, { active: true });
-      break;
+      return
     }
   }
-  if (!hasBlankTab) {
+  if (addIfNotExists) {
     await browser.tabs.create({ windowId: window.id, active: true });
   }
 }
 
-async function addAndActivateBlankTabs(skipActiveWindow=false) {
+async function activateBlankTabs(skipActiveWindow=false, addIfNotExists=true) {
   var windows = await browser.windows.getAll();
   for (var window of windows) {
     var skipWindow = skipActiveWindow && window.focused;
     if (!skipWindow) {
-      await addAndActivateBlankTab(window.id);
+      await activateBlankTab(window.id, addIfNotExists);
     }
   }
 }
@@ -46,7 +44,7 @@ async function focusFirstUndiscardableTab() {
 }
 
 async function unloadAllTabs() {
-  await addAndActivateBlankTabs();
+  await activateBlankTabs();
   var tabs = await browser.tabs.query({});
   var tabIds = tabs.map((tab) => tab.id);
   await browser.tabs.discard(tabIds);
@@ -55,7 +53,7 @@ async function unloadAllTabs() {
 }
 
 async function unloadAllTabsExceptActiveTab() {
-  await addAndActivateBlankTabs(skipActiveWindow=true);
+  await activateBlankTabs(skipActiveWindow=true);
   var currentWindowTabs = await browser.tabs.query({ currentWindow: true, active: true });
   var activeTab = currentWindowTabs[0];
   var tabs = await browser.tabs.query({});
@@ -65,7 +63,7 @@ async function unloadAllTabsExceptActiveTab() {
 }
 
 async function unloadAllTabsExceptActiveWindow() {
-  await addAndActivateBlankTabs(skipActiveWindow=true);
+  await activateBlankTabs(skipActiveWindow=true);
   var nonCurrentWindowTabs = await browser.tabs.query({ currentWindow: false });
   var tabIds = nonCurrentWindowTabs.map((tab) => tab.id);
   await browser.tabs.discard(tabIds);
@@ -93,7 +91,7 @@ async function unloadTab(e) {
   if (tab.active) {
     var alternativeTabActivated = await activateAlternativeLoadedTab(windowId, tab.id);
     if (!alternativeTabActivated) {
-      await addAndActivateBlankTab(windowId);
+      await activateBlankTab(windowId);
     }
   }
   await browser.tabs.discard(tabId);
@@ -105,7 +103,7 @@ async function unloadWindowTabs(e) {
   var window = windowLink.window;
   var tabs = await browser.tabs.query({ windowId: window.id, discarded: false });
   var tabIds = tabs.map((tab) => tab.id);
-  await addAndActivateBlankTab(window.id);
+  await activateBlankTab(window.id);
   await browser.tabs.discard(tabIds);
   await focusFirstUndiscardableTab();
 }
@@ -234,7 +232,7 @@ async function unloadActiveWindow() {
   var window = await browser.windows.getCurrent();
   var _hasUnloadableTabs = await hasUnloadableTabs(window.id);
   if (_hasUnloadableTabs) {
-    await addAndActivateBlankTab(window.id);
+    await activateBlankTab(window.id);
     var tabs = await browser.tabs.query({ currentWindow: true, discarded: false });
     var tabIds = tabs.map((tab) => tab.id);
     await browser.tabs.discard(tabIds);
@@ -250,7 +248,7 @@ async function unloadActiveTab() {
   var windowId = activeTab.windowId;
   var alternativeTabActivated = await activateAlternativeLoadedTab(windowId, activeTab.id);
   if (!alternativeTabActivated) {
-    await addAndActivateBlankTab(windowId);
+    await activateBlankTab(windowId);
   }
   await browser.tabs.discard(activeTab.id);
 }
