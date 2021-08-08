@@ -95,7 +95,7 @@ async function unloadTab(e) {
     }
   }
   await browser.tabs.discard(tabId);
-  focusTabIfUndiscarded(tabId);
+  await focusTabIfUndiscarded(tabId);
 }
 
 async function unloadWindowTabs(e) {
@@ -190,14 +190,13 @@ async function toggleTabList() {
 }
 
 async function hasUnloadableTabs(_windowId) {
-  var _hasUnloadableTabs = false;
   var tabs = await browser.tabs.query({ windowId: _windowId, discarded: false });
   for (var tab of tabs) {
     if (!isAboutTab(tab)) {
-      _hasUnloadableTabs = true;
+      return true;
     }
   }
-  return _hasUnloadableTabs;
+  return false;
 }
 
 function removeWindowLink(windowId) {
