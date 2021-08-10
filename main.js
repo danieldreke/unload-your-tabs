@@ -90,7 +90,7 @@ async function activateAlternativeLoadedTab(_windowId, activeTabId) {
 
 async function unloadTab(e) {
   var tabLink = e.currentTarget;
-  var tabId = tabLink.tab.id;
+  var tabId = tabLink.tabId;
   var tab = await browser.tabs.get(tabId);
   var windowId = tab.windowId;
   if (tab.active) {
@@ -105,10 +105,10 @@ async function unloadTab(e) {
 
 async function unloadWindowTabs(e) {
   var windowLink = e.currentTarget;
-  var window = windowLink.window;
-  var tabs = await browser.tabs.query({ windowId: window.id, discarded: false });
+  var windowId = windowLink.windowId;
+  var tabs = await browser.tabs.query({ windowId: windowId, discarded: false });
   var tabIds = getTabIds(tabs);
-  await activateBlankTab(window.id);
+  await activateBlankTab(windowId);
   await browser.tabs.discard(tabIds);
   await focusFirstUndiscardableTab();
 }
@@ -119,15 +119,14 @@ function isAboutTab(tab) {
 }
 
 async function focusWindow(e) {
-  var window = e.currentTarget.window;
-  await browser.windows.update(window.id, { focused: true });
+  var windowId = e.currentTarget.windowId;
+  await browser.windows.update(windowId, { focused: true });
 }
 
 async function focusTab(e) {
-  var tab = e.currentTarget.tab;
-  var window = e.currentTarget.window;
-  await browser.tabs.update(tab.id, { active: true });
-  await browser.windows.update(window.id, { focused: true });
+  var tabLink = e.currentTarget;
+  await browser.tabs.update(tabLink.tabId, { active: true });
+  await browser.windows.update(tabLink.windowId, { focused: true });
 }
 
 async function showUnloadableTabs() {
@@ -149,7 +148,7 @@ async function showUnloadableTabs() {
           windowLink.classList.add('windowlink');
           windowLink.classList.add('link');
           windowLink.classList.add('bold');
-          windowLink.window = window;
+          windowLink.windowId = window.id;
           windowLink.addEventListener('click', unloadWindowTabs);
           windowLink.addEventListener('contextmenu', focusWindow);
           tabList.appendChild(windowLink);
@@ -160,9 +159,7 @@ async function showUnloadableTabs() {
         tabLink.classList.add('link');
         tabLink.classList.add('tabinfo');
         tabLink.tabId = tab.id;
-        tabLink.window = window;
         tabLink.windowId = window.id;
-        tabLink.tab = tab;
         tabLink.addEventListener('click', unloadTab);
         tabLink.addEventListener('contextmenu', focusTab);
 
