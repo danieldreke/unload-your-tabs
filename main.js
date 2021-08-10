@@ -146,6 +146,7 @@ async function showUnloadableTabs() {
           let windowLink = document.createElement('div');
           windowLink.setAttribute('id', `window${window.id}`);
           windowLink.textContent = `Unload Window ${windowNr}`;
+          windowLink.classList.add('windowlink');
           windowLink.classList.add('link');
           windowLink.classList.add('bold');
           windowLink.window = window;
@@ -160,6 +161,7 @@ async function showUnloadableTabs() {
         tabLink.classList.add('tabinfo');
         tabLink.tabId = tab.id;
         tabLink.window = window;
+        tabLink.windowId = window.id;
         tabLink.tab = tab;
         tabLink.addEventListener('click', unloadTab);
         tabLink.addEventListener('contextmenu', focusTab);
@@ -181,19 +183,6 @@ async function showUnloadableTabs() {
   }
 }
 
-async function toggleTabList() {
-  let toggleLink = document.getElementById('toggle-tab-list');
-  if (toggleLink.textContent.includes('Show')) {
-    toggleLink.textContent = toggleLink.textContent.replace('Show', 'Hide');
-    await showUnloadableTabs();
-  }
-  else {
-    toggleLink.textContent = toggleLink.textContent.replace('Hide', 'Show');
-  }
-  let tabList = document.getElementById('tab-list');
-  tabList.classList.toggle('display-none');
-}
-
 async function hasUnloadableTabs(_windowId) {
   var tabs = await browser.tabs.query({ windowId: _windowId, discarded: false });
   for (var tab of tabs) {
@@ -204,6 +193,17 @@ async function hasUnloadableTabs(_windowId) {
   return false;
 }
 
+async function getUnloadableTabs(_windowId) {
+  var tabs = await browser.tabs.query({ windowId: _windowId, discarded: false });
+  var unloadableTabs = [];
+  for (var tab of tabs) {
+    if (!isAboutTab(tab)) {
+      unloadableTabs.push(tab);
+    }
+  }
+  return unloadableTabs;
+}
+
 function removeWindowLink(windowId) {
   var windowLink = document.getElementById(`window${windowId}`);
   windowLink.remove();
@@ -211,11 +211,13 @@ function removeWindowLink(windowId) {
 
 async function removeTabLink(eventTabId) {
   var tabLink = document.getElementById(`tab${eventTabId}`);
-  var window = tabLink.window;
+  var windowId = tabLink.windowId;
   tabLink.remove();
-  var _hasUnloadableTabs = await hasUnloadableTabs(window.id);
-  if (!_hasUnloadableTabs) {
-    removeWindowLink(window.id);
+  var unloadableTabs = await getUnloadableTabs(windowId);
+  var unloadableTabIds = getTabIds(unloadableTabs);
+  var hasUnloadableTabs = unloadableTabIds.length > 0 && !unloadableTabIds.includes(eventTabId);
+  if (!hasUnloadableTabs) {
+    removeWindowLink(windowId);
   }
 }
 
@@ -257,15 +259,16 @@ async function unloadActiveTab() {
   await browser.tabs.discard(activeTab.id);
 }
 
+document.addEventListener("DOMContentLoaded", showUnloadableTabs);
 document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
 document.getElementById('keep-active-tab').addEventListener('click', unloadAllTabsExceptActiveTab);
 document.getElementById('keep-active-window').addEventListener('click', unloadAllTabsExceptActiveWindow);
 document.getElementById('unload-active-window').addEventListener('click', unloadActiveWindow);
 document.getElementById('unload-active-tab').addEventListener('click', unloadActiveTab);
-document.getElementById('toggle-tab-list').addEventListener('click', toggleTabList);
 
 browser.tabs.onUpdated.addListener(removeTabLink, { properties: ['discarded'] });
 browser.tabs.onUpdated.addListener(updateTabIcon, { properties: ['status'] });
+browser.tabs.onRemoved.addListener(removeTabLink);
 
 // cancel default menu
 window.oncontextmenu = function() { return false; }
