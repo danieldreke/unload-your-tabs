@@ -28,6 +28,20 @@ async function updateBadgeTabCounter(eventTabId, isOnRemoved) {
 browser.tabs.onRemoved.addListener((tabId) => { updateBadgeTabCounter(tabId, true); }); // [1]
 browser.tabs.onUpdated.addListener(updateBadgeTabCounter, { properties: ['status', 'discarded'] }); // [2]
 
+browser.menus.create({
+  id: "unload-tab",
+  title: "Unload Tab",
+  contexts: ["tab", "page"]
+});
+
+browser.menus.onClicked.addListener(function(info, tab) {
+  if (info.menuItemId === "unload-tab") {
+    console.log('menu item unloadTab clicked');
+    //browser.tabs.discard(tab.id);
+    unloadTabWithId(tab.id);
+  }
+});
+
 updateBadgeTabCounter(); // for setting badge tab counter initially
 
 // [1] tab count on badge: https://github.com/mdn/webextensions-examples/blob/master/tabs-tabs-tabs/background.js
