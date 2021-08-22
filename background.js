@@ -1,10 +1,11 @@
-function getTabCount(tabs, eventTabId, isOnRemoved) {
+async function getTabCount(eventTabId, isOnRemoved) {
   var tabCount = 0;
+  var tabs = await browser.tabs.query({ discarded: false });
   for (var tab of tabs) {
-    var isAboutTab = tab.url.startsWith('about');
     var isEventTab = tab.id == eventTabId;
     var isTabOnRemoved = isEventTab && isOnRemoved == true;
-    var isTabDiscardable = !tab.discarded && !isAboutTab && !isTabOnRemoved;
+    var isBlankTab = tab.url.startsWith('about:new') || tab.url.startsWith('about:home');
+    var isTabDiscardable = !isBlankTab && !isTabOnRemoved;
     if (isTabDiscardable) {
       tabCount++;
     }
@@ -13,8 +14,7 @@ function getTabCount(tabs, eventTabId, isOnRemoved) {
 }
 
 async function updateBadgeTabCounter(eventTabId, isOnRemoved) {
-  var tabs = await browser.tabs.query({});
-  var tabCount = getTabCount(tabs, eventTabId, isOnRemoved);
+  var tabCount = await getTabCount(eventTabId, isOnRemoved);
   browser.browserAction.setBadgeText({text: tabCount.toString()});
   var badgeBgColor = 'green';
   badgeBgColor = (tabCount > 9) ? 'orange' : badgeBgColor;
