@@ -36,36 +36,33 @@ async function switchToWindowWithId(windowId) {
   await browser.windows.update(windowId, { focused: true });
 }
 
-function isTabLoaded(tab) {
-  var isStatusComplete = tab.status.startsWith('complete');
-  var isNotDiscarded = tab.discarded == false;
-  return isStatusComplete && isNotDiscarded;
-}
-
-async function switchToTabIfLoaded(tabId) {
+async function switchToTabIfUndiscarded(tabId) {
   var tab = await browser.tabs.get(tabId);
-  if (isTabLoaded(tab)) {
+  if (!tab.discarded) {
     await switchToTabWithId(tabId);
     await switchToWindowWithId(tab.windowId);
   }
 }
 
-async function getFullyLoadedTabs(tabProperties={}) {
-  console.log('getFullyLoadedTabs tabProperties', tabProperties);
+async function getUndiscardedNonBlankTabs(tabProperties={}) {
   tabProperties['discarded'] = false;
-  tabProperties['status'] = 'complete';
-  console.log('getFullyLoadedTabs tabProperties', tabProperties);
-  var fullyLoadedTabs = await browser.tabs.query(tabProperties);
-  console.log('getFullyLoadedTabs fullyLoadedTabs', fullyLoadedTabs);
-  return fullyLoadedTabs;
+  //tabProperties['status'] = 'complete';
+  var tabs = await browser.tabs.query(tabProperties);
+  var undiscardedNonBlankTabs = [];
+  for (var tab of tabs) {
+    if (!isBlankTab(tab)) {
+      undiscardedNonBlankTabs.push(tab);
+    }
+  }
+  return undiscardedNonBlankTabs;
 }
 
 // switch to tab that hasn't been discarded likely due to user editing
 async function switchToFirstUndiscardedTabIfExists(windowId) {
-  var tabs = await getFullyLoadedTabs({ windowId: windowId });
+  var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId });
   for (var tab of tabs) {
     if (!isAboutTab(tab)) {
-      await switchToTabIfLoaded(tab.id);
+      await switchToTabIfUndiscarded(tab.id);
       break;
     }
   }
@@ -82,16 +79,15 @@ async function unloadTabs(tabIds) {
 
 async function unloadAllTabs() {
   await switchToBlankTabs();
-  var tabs = await getFullyLoadedTabs();
+  var tabs = await getUndiscardedNonBlankTabs();
   var tabIds = getTabIds(tabs)
   await unloadTabs(tabIds);
   var currentWindow = await browser.windows.getCurrent();
   await switchToFirstUndiscardedTabIfExists(currentWindow.id);
-  window.close();
 }
 
 async function getActiveTabOfCurrentWindow() {
-  var activeTabs = await getFullyLoadedTabs({ currentWindow: true, active: true });
+  var activeTabs = await browser.tabs.query({ currentWindow: true, active: true });
   var activeTab = activeTabs[0];
   return activeTab;
 }
@@ -99,7 +95,7 @@ async function getActiveTabOfCurrentWindow() {
 async function unloadAllTabsExceptActiveTab() {
   await switchToBlankTabs(skipActiveWindow=true);
   var activeTab = await getActiveTabOfCurrentWindow();
-  var allTabs = await getFullyLoadedTabs();
+  var allTabs = await getUndiscardedNonBlankTabs();
   var allTabIds = getTabIds(allTabs);
   var allTabIdsExceptActiveTab = allTabIds.filter((tabId) => tabId != activeTab.id);
   await unloadTabs(allTabIdsExceptActiveTab);
@@ -107,13 +103,13 @@ async function unloadAllTabsExceptActiveTab() {
 
 async function unloadAllTabsExceptActiveWindow() {
   await switchToBlankTabs(skipActiveWindow=true);
-  var nonCurrentWindowTabs = await getFullyLoadedTabs({ currentWindow: false });
+  var nonCurrentWindowTabs = await getUndiscardedNonBlankTabs({ currentWindow: false });
   var nonCurrentWindowTabIds = getTabIds(nonCurrentWindowTabs);
   await unloadTabs(nonCurrentWindowTabIds);
 }
 
 async function switchToLoadedInactiveTab(windowId, activeTabId) {
-  var tabs = await getFullyLoadedTabs({ windowId: windowId });
+  var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId });
   var switchedToAnotherTab = false;
   for (var tab of tabs) {
     var isActiveTab = tab.id == activeTabId;
@@ -136,7 +132,7 @@ async function unloadTabWithId(tabId) {
     }
   }
   await unloadTabs(tabId);
-  //await switchToTabIfLoaded(tabId);
+  await switchToTabIfUndiscarded(tabId);
 }
 
 async function unloadTab(e) {
@@ -148,7 +144,7 @@ async function unloadTab(e) {
 async function unloadWindowTabs(e) {
   var windowLink = e.currentTarget;
   var windowId = windowLink.windowId;
-  var tabs = await getFullyLoadedTabs({ windowId: windowId });
+  var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId });
   var tabIds = getTabIds(tabs);
   await switchToBlankTab(windowId, addIfNotExists=true);
   await unloadTabs(tabIds);
@@ -179,8 +175,7 @@ async function listLoadedTabs() {
   for (var window of windows) {
     var tabCount = 0;
     for (var tab of window.tabs) {
-      //var isTabDiscardable = isTabLoaded(tab) && !isAboutTab(tab);
-      var isTabDiscardable = isTabLoaded(tab) && !isBlankTab(tab);
+      var isTabDiscardable = !tab.discarded && !isBlankTab(tab);
       if (isTabDiscardable) {
         tabCount++;
         // create window link
@@ -226,6 +221,7 @@ async function listLoadedTabs() {
 function removeWindowLink(windowId) {
   var windowLink = document.getElementById(`window${windowId}`);
   if (windowLink) {
+    windowLink.classList.add('display-none');
     windowLink.remove();
   }
 }
@@ -236,10 +232,11 @@ async function removeTabLink(eventTabId) {
     return;
   }
   var windowId = tabLink.windowId;
+  tabLink.classList.add('display-none');
   tabLink.remove();
-  var tabs = await getFullyLoadedTabs({ windowId: windowId });
+  var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId });
   var tabIds = getTabIds(tabs);
-  var existsOtherLoadedTab = tabIds.length > 0 && !tabIds.includes(eventTabId);
+  var existsOtherLoadedTab = tabs.length > 0 && !tabIds.includes(eventTabId);
   if (!existsOtherLoadedTab) {
     removeWindowLink(windowId);
   }
@@ -263,7 +260,7 @@ async function updateTabIcon(eventTabId) {
 async function unloadActiveWindow() {
   var currentWindow = await browser.windows.getCurrent();
   await switchToBlankTab(currentWindow.id, addIfNotExists=true);
-  var tabs = await getFullyLoadedTabs({ currentWindow: true })
+  var tabs = await getUndiscardedNonBlankTabs({ currentWindow: true })
   var tabIds = getTabIds(tabs);
   await unloadTabs(tabIds);
   await switchToFirstUndiscardedTabIfExists(currentWindow.id);
@@ -277,6 +274,7 @@ async function unloadActiveTab() {
     await switchToBlankTab(windowId, addIfNotExists=true);
   }
   await unloadTabs(activeTab.id);
+  await switchToTabIfUndiscarded(activeTab.id);
 }
 
 document.addEventListener("DOMContentLoaded", listLoadedTabs);
