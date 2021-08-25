@@ -206,7 +206,7 @@ function createTabLink(tab) {
   return tabLink;
 }
 
-async function listLoadedTabs() {
+async function listDiscardableNonBlankTabs() {
   var tabList = document.getElementById('tab-list');
   tabList.textContent = '';
   var windows = await browser.windows.getAll({ populate: true });
@@ -299,7 +299,7 @@ async function updateTabLink(tabId) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  listLoadedTabs();
+  listDiscardableNonBlankTabs();
   document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
   document.getElementById('keep-active-tab').addEventListener('click', unloadAllTabsExceptActiveTab);
   document.getElementById('keep-active-window').addEventListener('click', unloadAllTabsExceptActiveWindow);
