@@ -180,6 +180,13 @@ function createWindowLink(windowId, windowNr) {
   return windowLink;
 }
 
+async function closeTab(e) {
+  var tabLink = e.currentTarget;
+  var tabId = tabLink.tabId;
+  await unloadTabWithId(tabId);
+  await browser.tabs.remove(tabId);
+}
+
 function createTabLink(tab) {
   var tabId = tab.id;
   var tabLink = document.createElement('div');
@@ -189,6 +196,7 @@ function createTabLink(tab) {
   tabLink.tabId = tabId;
   tabLink.windowId = tab.windowId;
   tabLink.addEventListener('click', unloadTab);
+  tabLink.addEventListener('auxclick', closeTab);
   tabLink.addEventListener('contextmenu', switchToTab);
 
   var tabIcon = document.createElement('img');
