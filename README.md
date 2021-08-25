@@ -1,9 +1,36 @@
 # Unload Your Tabs
-Firefox extension that provides you following features:
-- Unload *all tabs**
-- Keep only active window loaded - Unload *all tabs** of all unfocused windows
-- Keep only active tab loaded - Unload *all tabs** except active tab of focused window
-<!--- Unload all tabs* of user selected window(s)
-- Unload all user selected tabs*-->
 
-*by adding and activating blank pages
+Firefox browser extension that provides you many options to unload your tabs.
+
+## Core Features
+
+- Unload all tabs - Unloads all tabs by using blank pages
+- Keep only active window - Unloads all tabs except of active window
+- Keep only active tab - Unloads all tabs except active tab of active window
+- Unload active window - Unloads all tabs of active window
+- Unload active tab - Unloads active tab of active window
+
+## Additional Features
+
+- Badge Counter of *loaded* tabs
+  - *Loaded* tab: undiscarded non blank tab
+- List of loaded tabs and their parent windows
+  - Unload tab on left click
+  - Close tab on middle click
+  - Switch to tab on right click
+  - Unload tabs of window on left click
+  - Switch to window on right click
+
+## Unloading Tabs using Blank Tabs
+
+Unloading algorithm:
+- Switch to another *loaded* tab if tab is active
+  - Switch to blank tab if no *loaded* tab exists
+    - Create blank tab if not exists
+- Unload tab
+
+## Undiscardable Tabs
+
+Two types of tabs cannot be unloaded/discarded:
+- Non blank loaded `about:` tabs
+- Tabs in `editing` state
