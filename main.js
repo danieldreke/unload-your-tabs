@@ -181,23 +181,27 @@ function createWindowLink(windowId, windowNr) {
 }
 
 function createTabLink(tab) {
+  var tabId = tab.id;
   var tabLink = document.createElement('div');
-  tabLink.setAttribute('id', `tab${tab.id}`);
+  tabLink.setAttribute('id', `tab${tabId}`);
   tabLink.classList.add('link');
   tabLink.classList.add('tabinfo');
-  tabLink.tabId = tab.id;
+  tabLink.tabId = tabId;
   tabLink.windowId = tab.windowId;
   tabLink.addEventListener('click', unloadTab);
   tabLink.addEventListener('contextmenu', switchToTab);
 
-  let tabIcon = document.createElement('img');
-  tabIcon.setAttribute('id', `icon${tab.id}`);
+  var tabIcon = document.createElement('img');
+  tabIcon.setAttribute('id', `icon${tabId}`);
   tabIcon.setAttribute('class', 'favicon');
-  tabIcon.setAttribute('src', tab.favIconUrl);
+  if (tab.favIconUrl) {
+    tabIcon.setAttribute('src', tab.favIconUrl);
+  }
   tabLink.appendChild(tabIcon);
 
-  let tabTitle = document.createElement('span');
+  var tabTitle = document.createElement('span');
   tabTitle.textContent = `${tab.title}`;
+  tabTitle.setAttribute('id', `title${tabId}`);
   tabLink.appendChild(tabTitle);
   return tabLink;
 }
@@ -249,21 +253,6 @@ async function removeTabLink(eventTabId) {
   }
 }
 
-// problem: if popup is opened while tabs are still loading
-//   corresponding favicons are not loaded properly
-// solution: once tab is loaded reset image src
-//   unfortunately it doesn't work 100% (2021-8-6)
-async function updateTabIcon(eventTabId) {
-  var tab = await browser.tabs.get(eventTabId);
-  var isTabLoaded = tab.status === 'complete';
-  if (isTabLoaded) {
-    var tabIcon = document.getElementById(`icon${eventTabId}`);
-    if (tabIcon) {
-      tabIcon.setAttribute('src', tab.favIconUrl);
-    }
-  }
-}
-
 async function unloadActiveWindow() {
   var currentWindow = await browser.windows.getCurrent();
   await switchToBlankTab(currentWindow.id, addIfNotExists=true);
@@ -284,17 +273,42 @@ async function unloadActiveTab() {
   await unloadTabs(activeTabId);
   await switchToTabIfUndiscardedNonAboutTab(activeTabId);
 }
+
+async function updateTabTitle(tabId) {
+  var tab = await browser.tabs.get(tabId);
+  var tabTitleElem = document.getElementById(`title${tabId}`);
+  if (tabTitleElem) {
+    tabTitleElem.textContent = `${tab.title}`;
+  }
 }
 
-document.addEventListener("DOMContentLoaded", listLoadedTabs);
-document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
-document.getElementById('keep-active-tab').addEventListener('click', unloadAllTabsExceptActiveTab);
-document.getElementById('keep-active-window').addEventListener('click', unloadAllTabsExceptActiveWindow);
-document.getElementById('unload-active-window').addEventListener('click', unloadActiveWindow);
-document.getElementById('unload-active-tab').addEventListener('click', unloadActiveTab);
+async function updateTabIcon(tabId) {
+  var tabIcon = document.getElementById(`icon${tabId}`);
+  if (tabIcon) {
+    var tab = await browser.tabs.get(tabId);
+    var isFavIconUrlAvailable = typeof tab.favIconUrl !== 'undefined';
+    if (isFavIconUrlAvailable) {
+      tabIcon.setAttribute('src', tab.favIconUrl);
+    }
+  }
+}
+
+async function updateTabLink(tabId) {
+  updateTabTitle(tabId);
+  updateTabIcon(tabId);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  listLoadedTabs();
+  document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
+  document.getElementById('keep-active-tab').addEventListener('click', unloadAllTabsExceptActiveTab);
+  document.getElementById('keep-active-window').addEventListener('click', unloadAllTabsExceptActiveWindow);
+  document.getElementById('unload-active-window').addEventListener('click', unloadActiveWindow);
+  document.getElementById('unload-active-tab').addEventListener('click', unloadActiveTab);
+});
 
 browser.tabs.onUpdated.addListener(removeTabLink, { properties: ['discarded'] });
-browser.tabs.onUpdated.addListener(updateTabIcon, { properties: ['status'] });
+browser.tabs.onUpdated.addListener(updateTabLink, { properties: ['status', 'url'] });
 browser.tabs.onRemoved.addListener(removeTabLink);
 
 // cancel default menu
