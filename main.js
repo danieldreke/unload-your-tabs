@@ -180,10 +180,14 @@ function createWindowLink(windowId, windowNr) {
 }
 
 async function closeTab(e) {
-  var tabLink = e.currentTarget;
-  var tabId = tabLink.tabId;
-  await unloadTabWithId(tabId);
-  await browser.tabs.remove(tabId);
+  // note: auxclick event is also triggered by right mouse button
+  var middleMouseButtonClicked = e.which == 2 && e.button == 1;
+  if (middleMouseButtonClicked) {
+    var tabLink = e.currentTarget;
+    var tabId = tabLink.tabId;
+    await unloadTabWithId(tabId);
+    await browser.tabs.remove(tabId);
+  }
 }
 
 function createTabLinkTitle(tab) {
