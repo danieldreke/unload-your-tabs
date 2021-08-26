@@ -57,7 +57,6 @@ async function switchToTabIfUndiscardedNonAboutTab(tabId) {
   var tab = await browser.tabs.get(tabId);
   if (!tab.discarded && !isAboutTab(tab)) {
     await switchToTabWithId(tab.id);
-    await switchToWindowWithId(tab.windowId);
   }
 }
 
@@ -66,7 +65,7 @@ async function switchToFirstUndiscardedTabIfExists(windowId) {
   var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId });
   for (var tab of tabs) {
     if (!isAboutTab(tab)) {
-      await switchToTabIfUndiscardedNonAboutTab(tab.id);
+      await switchToTabWithId(tab.id);
       break;
     }
   }
