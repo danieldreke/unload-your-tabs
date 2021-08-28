@@ -36,8 +36,6 @@ browser.menus.create({
 
 browser.menus.onClicked.addListener(function(info, tab) {
   if (info.menuItemId === "unload-tab") {
-    console.log('menu item unloadTab clicked');
-    //browser.tabs.discard(tab.id);
     unloadTabWithId(tab.id);
   }
 });
