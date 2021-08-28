@@ -31,6 +31,8 @@ Unloading algorithm:
 
 ## Undiscardable Tabs
 
-Two types of tabs cannot be unloaded/discarded:
-- Non blank loaded `about:` tabs
-- Tabs in `editing` state
+Cases a tab will/can not be unloaded/discarded:
+- Tab is playing media
+- Tab is in `editing` state
+- Tab is a non blank loaded `about:` tab
+  - For example `about:addons` or `about:debugging`
