@@ -22,10 +22,10 @@ async function switchToBlankTab(windowId, addIfNotExists=true) {
   }
 }
 
-async function switchToBlankTabs(skipActiveWindow=false, addIfNotExists=true) {
+async function switchToBlankTabs(skipCurrentWindow=false, addIfNotExists=true) {
   var windows = await browser.windows.getAll();
   for (var window of windows) {
-    var skipWindow = skipActiveWindow && window.focused;
+    var skipWindow = skipCurrentWindow && window.focused;
     if (!skipWindow) {
       await switchToBlankTab(window.id, addIfNotExists);
     }
@@ -95,28 +95,27 @@ async function getActiveTabOfCurrentWindow() {
   return activeTab;
 }
 
-async function unloadAllTabsExceptActiveTab() {
-  await switchToBlankTabs(skipActiveWindow=true);
+async function unloadAllTabsExceptCurrentTab() {
+  await switchToBlankTabs(skipCurrentWindow=true);
   var activeTab = await getActiveTabOfCurrentWindow();
   var allTabs = await getUndiscardedNonBlankTabs();
   var allTabIds = getTabIds(allTabs);
-  var allTabIdsExceptActiveTab = allTabIds.filter((tabId) => tabId != activeTab.id);
-  await unloadTabs(allTabIdsExceptActiveTab);
+  var allTabIdsExceptCurrentTab = allTabIds.filter((tabId) => tabId != activeTab.id);
+  await unloadTabs(allTabIdsExceptCurrentTab);
 }
 
-async function unloadAllTabsExceptActiveWindow() {
-  await switchToBlankTabs(skipActiveWindow=true);
+async function unloadAllTabsExceptCurrentWindow() {
+  await switchToBlankTabs(skipCurrentWindow=true);
   var nonCurrentWindowTabs = await getUndiscardedNonBlankTabs({ currentWindow: false });
   var nonCurrentWindowTabIds = getTabIds(nonCurrentWindowTabs);
   await unloadTabs(nonCurrentWindowTabIds);
 }
 
-async function switchToLoadedInactiveTab(windowId, activeTabId) {
-  var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId });
+async function switchToLoadedInactiveTab(windowId) {
+  var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId, active: false });
   var switchedToAnotherTab = false;
   for (var tab of tabs) {
-    var isActiveTab = tab.id == activeTabId;
-    if (!isAboutTab(tab) && !isActiveTab) {
+    if (!isAboutTab(tab)) {
       await switchToTabWithId(tab.id);
       switchedToAnotherTab = true;
       break;
@@ -129,7 +128,7 @@ async function unloadTabWithId(tabId) {
   var tab = await browser.tabs.get(tabId);
   if (tab.active) {
     var windowId = tab.windowId;
-    var switchedToInactiveTab = await switchToLoadedInactiveTab(windowId, tab.id);
+    var switchedToInactiveTab = await switchToLoadedInactiveTab(windowId);
     if (!switchedToInactiveTab) {
       await switchToBlankTab(windowId, addIfNotExists=true);
     }
@@ -165,14 +164,17 @@ async function switchToTab(e) {
   await switchToWindowWithId(tabLink.windowId);
 }
 
-function createWindowLink(windowId, windowNr) {
+function createWindowLink(window, windowNr) {
   var windowLink = document.createElement('div');
-  windowLink.setAttribute('id', `window${windowId}`);
+  windowLink.setAttribute('id', `window${window.id}`);
   windowLink.textContent = `Unload Window ${windowNr}`;
   windowLink.classList.add('windowlink');
   windowLink.classList.add('link');
   windowLink.classList.add('bold');
-  windowLink.windowId = windowId;
+  if (window.focused) {
+    windowLink.classList.add('currentwindow');
+  }
+  windowLink.windowId = window.id;
   windowLink.addEventListener('click', unloadWindowTabs);
   windowLink.addEventListener('contextmenu', switchToWindow);
   return windowLink;
@@ -189,10 +191,20 @@ async function closeTab(e) {
   }
 }
 
-function createTabLinkTitle(tab) {
+function getTabLinkTitle(tab) {
+  var tabLinkTitle = `${tab.title}`;
+  //var tabLinkTitle = `T${tab.id} ${tab.title}`;
+  return tabLinkTitle
+}
+
+function createTabLinkTitle(tab, windowFocused) {
   var tabLinkTitle = document.createElement('span');
-  tabLinkTitle.textContent = `${tab.title}`;
-  tabLinkTitle.setAttribute('id', `title${tab.id}`);
+  tabLinkTitle.textContent = getTabLinkTitle(tab);
+  tabLinkTitle.setAttribute('id', `tabtitle${tab.id}`);
+  var isCurrentTab = tab.active && windowFocused;
+  if (isCurrentTab) {
+    tabLinkTitle.classList.add('currenttab');
+  }
   return tabLinkTitle;
 }
 
@@ -206,7 +218,7 @@ function createTabIcon(tab) {
   return tabIcon;
 }
 
-function createTabLink(tab) {
+function createTabLink(tab, windowFocused) {
   var tabId = tab.id;
   var tabLink = document.createElement('div');
   tabLink.setAttribute('id', `tab${tabId}`);
@@ -218,7 +230,7 @@ function createTabLink(tab) {
   tabLink.addEventListener('auxclick', closeTab);
   tabLink.addEventListener('contextmenu', switchToTab);
   var tabIcon = createTabIcon(tab);
-  var tabLinkTitle = createTabLinkTitle(tab);
+  var tabLinkTitle = createTabLinkTitle(tab, windowFocused);
   tabLink.appendChild(tabIcon);
   tabLink.appendChild(tabLinkTitle);
   return tabLink;
@@ -236,10 +248,10 @@ async function listUndiscardedNonBlankTabs() {
       if (isUndiscardedNonBlankTab) {
         tabCount++;
         if (tabCount == 1) {
-          var windowLink = createWindowLink(window.id, windowNr);
+          var windowLink = createWindowLink(window, windowNr);
           tabList.appendChild(windowLink);
         }
-        let tabLink = createTabLink(tab);
+        let tabLink = createTabLink(tab, window.focused);
         tabList.appendChild(tabLink);
       }
     }
@@ -271,7 +283,7 @@ async function removeTabLink(eventTabId) {
   }
 }
 
-async function unloadActiveWindow() {
+async function unloadCurrentWindow() {
   var currentWindow = await browser.windows.getCurrent();
   await switchToBlankTab(currentWindow.id, addIfNotExists=true);
   var tabs = await getUndiscardedNonBlankTabs({ currentWindow: true })
@@ -280,11 +292,11 @@ async function unloadActiveWindow() {
   await switchToFirstUndiscardedTabIfExists(currentWindow.id);
 }
 
-async function unloadActiveTab() {
+async function unloadCurrentTab() {
   var activeTab = await getActiveTabOfCurrentWindow();
   var activeTabId = activeTab.id;
   var windowId = activeTab.windowId;
-  var switchedToInactiveTab = await switchToLoadedInactiveTab(windowId, activeTabId);
+  var switchedToInactiveTab = await switchToLoadedInactiveTab(windowId);
   if (!switchedToInactiveTab) {
     await switchToBlankTab(windowId, addIfNotExists=true);
   }
@@ -294,9 +306,9 @@ async function unloadActiveTab() {
 
 async function updateTabTitle(tabId) {
   var tab = await browser.tabs.get(tabId);
-  var tabLinkTitle = document.getElementById(`title${tabId}`);
+  var tabLinkTitle = document.getElementById(`tabtitle${tabId}`);
   if (tabLinkTitle) {
-    tabLinkTitle.textContent = `${tab.title}`;
+    tabLinkTitle.textContent = getTabLinkTitle(tab);
   }
 }
 
@@ -316,17 +328,30 @@ async function updateTabLink(tabId) {
   updateTabIcon(tabId);
 }
 
+async function updateTabLinkFontStyle(info) {
+  var window = await browser.windows.get(info.windowId);
+  var deactivatedTabLinkTitle = document.getElementById(`tabtitle${info.previousTabId}`);
+  if (deactivatedTabLinkTitle) {
+    deactivatedTabLinkTitle.classList.remove('currenttab');
+  }
+  var activatedTabLinkTitle = document.getElementById(`tabtitle${info.tabId}`);
+  if (activatedTabLinkTitle && window.focused) {
+    activatedTabLinkTitle.classList.add('currenttab');
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   listUndiscardedNonBlankTabs();
   document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
-  document.getElementById('keep-active-tab').addEventListener('click', unloadAllTabsExceptActiveTab);
-  document.getElementById('keep-active-window').addEventListener('click', unloadAllTabsExceptActiveWindow);
-  document.getElementById('unload-active-window').addEventListener('click', unloadActiveWindow);
-  document.getElementById('unload-active-tab').addEventListener('click', unloadActiveTab);
+  document.getElementById('keep-current-tab').addEventListener('click', unloadAllTabsExceptCurrentTab);
+  document.getElementById('keep-current-window').addEventListener('click', unloadAllTabsExceptCurrentWindow);
+  document.getElementById('unload-current-window').addEventListener('click', unloadCurrentWindow);
+  document.getElementById('unload-current-tab').addEventListener('click', unloadCurrentTab);
 });
 
 browser.tabs.onUpdated.addListener(removeTabLink, { properties: ['discarded'] });
 browser.tabs.onUpdated.addListener(updateTabLink, { properties: ['status', 'url'] });
+browser.tabs.onActivated.addListener(updateTabLinkFontStyle);
 browser.tabs.onRemoved.addListener(removeTabLink);
 
 // cancel default menu

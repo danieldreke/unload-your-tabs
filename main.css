@@ -39,6 +39,14 @@ div.link:hover {
   font-weight: bold;
 }
 
+.currenttab, .italic {
+  font-style: italic;
+}
+
+.currenttab::before {
+  content: '[Current Tab] ';
+}
+
 hr {
   margin: 4px 0px 4px 0px;
   border: 1px solid grey;
