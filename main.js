@@ -209,15 +209,25 @@ function getTabLinkTitle(tab) {
   return tabLinkTitle
 }
 
+function getTooltipText(tab) {
+  var tooltipText = tab.title + '\n---\n' + tab.url;
+  return tooltipText;
+}
+
+function setTabLinkTooltip(tabLink, tab) {
+  tabLink.setAttribute('title', getTooltipText(tab));
+}
+
 function createTabLinkTitle(tab, windowFocused) {
-  var tabLinkTitle = document.createElement('span');
-  tabLinkTitle.textContent = getTabLinkTitle(tab);
-  tabLinkTitle.setAttribute('id', `tabtitle${tab.id}`);
+  var tabLinkTitleElem = document.createElement('span');
+  var tabLinkTitle = getTabLinkTitle(tab);
+  tabLinkTitleElem.textContent = tabLinkTitle;
+  tabLinkTitleElem.setAttribute('id', `tabtitle${tab.id}`);
   var isCurrentTab = tab.active && windowFocused;
   if (isCurrentTab) {
-    tabLinkTitle.classList.add('currenttab');
+    tabLinkTitleElem.classList.add('currenttab');
   }
-  return tabLinkTitle;
+  return tabLinkTitleElem;
 }
 
 function createTabIcon(tab) {
@@ -234,6 +244,7 @@ function createTabLink(tab, windowFocused) {
   var tabId = tab.id;
   var tabLink = document.createElement('div');
   tabLink.setAttribute('id', `tab${tabId}`);
+  setTabLinkTooltip(tabLink, tab);
   tabLink.classList.add('link');
   tabLink.classList.add('tabinfo');
   tabLink.tabId = tabId;
@@ -315,15 +326,14 @@ async function unloadCurrentTab() {
   await switchToTabIfUndiscardedNonAboutTab(activeTabId);
 }
 
-async function updateTabTitle(tabId) {
-  var tab = await browser.tabs.get(tabId);
-  var tabLinkTitle = document.getElementById(`tabtitle${tabId}`);
+async function updateTabLinkTitle(tab) {
+  var tabLinkTitle = document.getElementById(`tabtitle${tab.id}`);
   if (tabLinkTitle) {
     tabLinkTitle.textContent = getTabLinkTitle(tab);
   }
 }
 
-async function updateTabIcon(tabId) {
+async function updateTabLinkIcon(tabId) {
   var tabIcon = document.getElementById(`icon${tabId}`);
   if (tabIcon) {
     var tab = await browser.tabs.get(tabId);
@@ -334,9 +344,16 @@ async function updateTabIcon(tabId) {
   }
 }
 
+function updateTabLinkToolTip(tab) {
+  var tabLink = document.getElementById(`tab${tab.id}`);
+  setTabLinkTooltip(tabLink, tab);
+}
+
 async function updateTabLink(tabId) {
-  updateTabTitle(tabId);
-  updateTabIcon(tabId);
+  var tab = await browser.tabs.get(tabId);
+  updateTabLinkToolTip(tab);
+  updateTabLinkTitle(tab);
+  updateTabLinkIcon(tabId);
 }
 
 async function updateTabLinkFontStyle(info) {
