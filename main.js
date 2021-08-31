@@ -14,7 +14,7 @@ async function switchToTabWithId(tabId) {
 
 async function switchToBlankTab(windowId, addIfNotExists=true) {
   var window = await browser.windows.get(windowId, { populate: true });
-  for (var tab of window.tabs) {
+  for (let tab of window.tabs) {
     if (isBlankTab(tab)) {
       await switchToTabWithId(tab.id);
       return;
@@ -27,7 +27,7 @@ async function switchToBlankTab(windowId, addIfNotExists=true) {
 
 async function switchToBlankTabs(skipCurrentWindow=false, addIfNotExists=true) {
   var windows = await browser.windows.getAll();
-  for (var window of windows) {
+  for (let window of windows) {
     var skipWindow = skipCurrentWindow && window.focused;
     if (!skipWindow) {
       await switchToBlankTab(window.id, addIfNotExists);
@@ -43,7 +43,7 @@ async function getUndiscardedNonBlankTabs(tabProperties={}) {
   tabProperties['discarded'] = false;
   var tabs = await browser.tabs.query(tabProperties);
   var undiscardedNonBlankTabs = [];
-  for (var tab of tabs) {
+  for (let tab of tabs) {
     if (!isBlankTab(tab)) {
       undiscardedNonBlankTabs.push(tab);
     }
@@ -66,7 +66,7 @@ async function switchToTabIfUndiscardedNonAboutTab(tabId) {
 // switch to non-about tab that hasn't been discarded
 async function switchToFirstUndiscardedTabIfExists(windowId) {
   var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId });
-  for (var tab of tabs) {
+  for (let tab of tabs) {
     if (!isAboutTab(tab)) {
       await switchToTabWithId(tab.id);
       break;
@@ -127,7 +127,7 @@ async function unloadAllTabsExceptCurrentWindow() {
 async function switchToLoadedInactiveTab(windowId) {
   var tabs = await getUndiscardedNonBlankTabs({ windowId: windowId, active: false });
   var switchedToAnotherTab = false;
-  for (var tab of tabs) {
+  for (let tab of tabs) {
     if (!isAboutTab(tab)) {
       await switchToTabWithId(tab.id);
       switchedToAnotherTab = true;
@@ -264,9 +264,9 @@ async function listUndiscardedNonBlankTabs() {
   tabList.textContent = '';
   var windows = await browser.windows.getAll({ populate: true });
   var windowNr = 1;
-  for (var window of windows) {
+  for (let window of windows) {
     var tabCount = 0;
-    for (var tab of window.tabs) {
+    for (let tab of window.tabs) {
       var isUndiscardedNonBlankTab = !tab.discarded && !isBlankTab(tab);
       if (isUndiscardedNonBlankTab) {
         tabCount++;
@@ -274,7 +274,7 @@ async function listUndiscardedNonBlankTabs() {
           var windowLink = createWindowLink(window, windowNr);
           tabList.appendChild(windowLink);
         }
-        let tabLink = createTabLink(tab, window.focused);
+        var tabLink = createTabLink(tab, window.focused);
         tabList.appendChild(tabLink);
       }
     }
