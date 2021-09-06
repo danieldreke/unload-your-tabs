@@ -240,6 +240,17 @@ function createTabIcon(tab) {
   return tabIcon;
 }
 
+function createTabLinkMarker(tab, windowFocused) {
+  var currentTabMarker = document.createElement('span');
+  currentTabMarker.setAttribute('id', `tabmarker${tab.id}`);
+  currentTabMarker.classList.add('tabmarker');
+  currentTabMarker.textContent = '·';
+  if (tab.active && windowFocused) {
+    currentTabMarker.classList.add('visible');
+  }
+  return currentTabMarker;
+}
+
 function createTabLink(tab, windowFocused) {
   var tabId = tab.id;
   var tabLink = document.createElement('div');
@@ -254,6 +265,8 @@ function createTabLink(tab, windowFocused) {
   tabLink.addEventListener('contextmenu', switchToListSelectedTab);
   var tabIcon = createTabIcon(tab);
   var tabLinkTitle = createTabLinkTitle(tab, windowFocused);
+  var currentTabMarker = createTabLinkMarker(tab, windowFocused);
+  tabLink.appendChild(currentTabMarker);
   tabLink.appendChild(tabIcon);
   tabLink.appendChild(tabLinkTitle);
   return tabLink;
@@ -346,7 +359,9 @@ async function updateTabLinkIcon(tabId) {
 
 function updateTabLinkToolTip(tab) {
   var tabLink = document.getElementById(`tab${tab.id}`);
-  setTabLinkTooltip(tabLink, tab);
+  if (tabLink) {
+    setTabLinkTooltip(tabLink, tab);
+  }
 }
 
 async function updateTabLink(tabId) {
@@ -357,15 +372,14 @@ async function updateTabLink(tabId) {
 }
 
 async function updateTabLinkFontStyle(info) {
-  var window = await browser.windows.get(info.windowId);
   var deactivatedTabLinkTitle = document.getElementById(`tabtitle${info.previousTabId}`);
-  if (deactivatedTabLinkTitle) {
-    deactivatedTabLinkTitle.classList.remove('currenttab');
-  }
+  deactivatedTabLinkTitle && deactivatedTabLinkTitle.classList.remove('currenttab');
+  var deactivatedTabLinkMarker = document.getElementById(`tabmarker${info.previousTabId}`);
+  deactivatedTabLinkMarker && deactivatedTabLinkMarker.classList.remove('visible');
   var activatedTabLinkTitle = document.getElementById(`tabtitle${info.tabId}`);
-  if (activatedTabLinkTitle && window.focused) {
-    activatedTabLinkTitle.classList.add('currenttab');
-  }
+  activatedTabLinkTitle && activatedTabLinkTitle.classList.add('currenttab');
+  var activatedTabLinkMarker = document.getElementById(`tabmarker${info.tabId}`);
+  activatedTabLinkMarker && activatedTabLinkMarker.classList.add('visible');
 }
 
 document.addEventListener("DOMContentLoaded", () => {
