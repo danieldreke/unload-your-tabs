@@ -372,14 +372,20 @@ async function updateTabLink(tabId) {
 }
 
 async function updateTabLinkFontStyle(info) {
-  var deactivatedTabLinkTitle = document.getElementById(`tabtitle${info.previousTabId}`);
-  deactivatedTabLinkTitle && deactivatedTabLinkTitle.classList.remove('currenttab');
-  var deactivatedTabLinkMarker = document.getElementById(`tabmarker${info.previousTabId}`);
-  deactivatedTabLinkMarker && deactivatedTabLinkMarker.classList.remove('visible');
-  var activatedTabLinkTitle = document.getElementById(`tabtitle${info.tabId}`);
-  activatedTabLinkTitle && activatedTabLinkTitle.classList.add('currenttab');
-  var activatedTabLinkMarker = document.getElementById(`tabmarker${info.tabId}`);
-  activatedTabLinkMarker && activatedTabLinkMarker.classList.add('visible');
+  var currentWindow = await browser.windows.getCurrent();
+  var isCurrentWindow = currentWindow.id == info.windowId;
+  if (isCurrentWindow) {
+    // de-highlight previous tab
+    var deactivatedTabLinkTitle = document.getElementById(`tabtitle${info.previousTabId}`);
+    deactivatedTabLinkTitle && deactivatedTabLinkTitle.classList.remove('currenttab');
+    var deactivatedTabLinkMarker = document.getElementById(`tabmarker${info.previousTabId}`);
+    deactivatedTabLinkMarker && deactivatedTabLinkMarker.classList.remove('visible');
+    // highlight new current tab
+    var activatedTabLinkTitle = document.getElementById(`tabtitle${info.tabId}`);
+    activatedTabLinkTitle && activatedTabLinkTitle.classList.add('currenttab');
+    var activatedTabLinkMarker = document.getElementById(`tabmarker${info.tabId}`);
+    activatedTabLinkMarker && activatedTabLinkMarker.classList.add('visible');
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
