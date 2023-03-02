@@ -1,6 +1,6 @@
 # Unload Your Tabs
 
-Firefox browser extension that provides you many options to unload your tabs.
+Firefox browser extension to unload specific or all tabs with one click.
 
 ## Core Features
 
