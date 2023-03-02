@@ -4,11 +4,16 @@ Firefox browser extension to unload specific or all tabs with one click.
 
 ## Core Features
 
-- Unload all tabs - Unloads all tabs by using blank pages
-- Keep only active window - Unloads all tabs except of active window
-- Keep only active tab - Unloads all tabs except active tab of active window
-- Unload active window - Unloads all tabs of active window
-- Unload active tab - Unloads active tab of active window
+- Unload all tabs
+  - Unloads all tabs by using blank pages
+- Keep only current window
+  - Unloads all tabs except of current window
+- Keep only current tab
+  - Unloads all tabs except active tab of current window
+- Unload current window
+  - Unloads all tabs of current window
+- Unload current tab
+  - Unloads active tab of current window
 
 ## Additional Features
 
