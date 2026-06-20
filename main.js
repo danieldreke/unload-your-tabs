@@ -77,9 +77,12 @@ function createTabLink(tab, windowFocused) {
   setTabLinkTooltip(tabLink, tab);
   tabLink.classList.add('link');
   tabLink.classList.add('tabinfo');
+  if (tab.discarded) {
+    tabLink.classList.add('discarded');
+  }
   tabLink.tabId = tab.id;
   tabLink.windowId = tab.windowId;
-  tabLink.addEventListener('click', unloadListSelectedTab);
+  tabLink.addEventListener('click', tab.discarded ? switchToListSelectedTab : unloadListSelectedTab);
   tabLink.addEventListener('auxclick', closeListSelectedTab);
   tabLink.addEventListener('contextmenu', switchToListSelectedTab);
   tabLink.appendChild(createTabLinkMarker(tab, windowFocused));
@@ -88,14 +91,14 @@ function createTabLink(tab, windowFocused) {
   return tabLink;
 }
 
-function createWindowLink(window, windowNr) {
+function createWindowLink(window, windowNr, isCurrent) {
   var windowLink = document.createElement('div');
   windowLink.setAttribute('id', `window${window.id}`);
   windowLink.textContent = `Unload Window ${windowNr}`;
   windowLink.classList.add('windowlink');
   windowLink.classList.add('link');
   windowLink.classList.add('bold');
-  if (window.focused) {
+  if (isCurrent) {
     windowLink.classList.add('currentwindow');
   }
   windowLink.windowId = window.id;
@@ -104,21 +107,25 @@ function createWindowLink(window, windowNr) {
   return windowLink;
 }
 
-async function listUndiscardedNonBlankTabs() {
+async function listTabs() {
+  var showAll = document.getElementById('show-all-tabs').checked;
   var tabList = document.getElementById('tab-list');
   tabList.textContent = '';
+  var currentWindow = await browser.windows.getCurrent();
   var windows = await browser.windows.getAll({ populate: true });
+  windows.sort((a, b) => (b.id === currentWindow.id ? 1 : 0) - (a.id === currentWindow.id ? 1 : 0));
   var windowNr = 1;
   for (let window of windows) {
+    var isCurrent = window.id === currentWindow.id;
     var tabCount = 0;
     for (let tab of window.tabs) {
-      if (!tab.discarded && !isBlankTab(tab)) {
-        tabCount++;
-        if (tabCount === 1) {
-          tabList.appendChild(createWindowLink(window, windowNr));
-        }
-        tabList.appendChild(createTabLink(tab, window.focused));
+      if (isBlankTab(tab)) continue;
+      if (!showAll && tab.discarded) continue;
+      tabCount++;
+      if (tabCount === 1) {
+        tabList.appendChild(createWindowLink(window, windowNr, isCurrent));
       }
+      tabList.appendChild(createTabLink(tab, isCurrent));
     }
     if (tabCount > 0) {
       windowNr++;
@@ -205,7 +212,8 @@ async function updateTabLinkFontStyle(info) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  listUndiscardedNonBlankTabs();
+  listTabs();
+  document.getElementById('show-all-tabs').addEventListener('change', listTabs);
   document.getElementById('unload-all-tabs').addEventListener('click', unloadAllTabs);
   document.getElementById('keep-current-tab').addEventListener('click', unloadAllTabsExceptCurrentTab);
   document.getElementById('keep-current-window').addEventListener('click', unloadAllTabsExceptCurrentWindow);
@@ -213,9 +221,29 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('unload-current-tab').addEventListener('click', unloadCurrentTab);
 });
 
-browser.tabs.onUpdated.addListener(removeTabLink);
-browser.tabs.onUpdated.addListener(updateTabLink);
+function showingAllTabs() {
+  return document.getElementById('show-all-tabs').checked;
+}
+
+async function handleTabUpdated(tabId) {
+  if (showingAllTabs()) {
+    await listTabs();
+  } else {
+    await removeTabLink(tabId);
+    await updateTabLink(tabId);
+  }
+}
+
+async function handleTabRemoved(tabId) {
+  if (showingAllTabs()) {
+    await listTabs();
+  } else {
+    await removeTabLink(tabId);
+  }
+}
+
+browser.tabs.onUpdated.addListener(handleTabUpdated);
 browser.tabs.onActivated.addListener(updateTabLinkFontStyle);
-browser.tabs.onRemoved.addListener(removeTabLink);
+browser.tabs.onRemoved.addListener(handleTabRemoved);
 
 window.oncontextmenu = (e) => { e.preventDefault(); };

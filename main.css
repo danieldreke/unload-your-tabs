@@ -1,6 +1,9 @@
 body {
   width: 420px;
   overflow-x: hidden;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  margin: 0px;
 }
 
 .display-none {
@@ -59,4 +62,24 @@ div.link:hover {
 hr {
   margin: 4px 0px 4px 0px;
   border: 1px solid grey;
+}
+
+#tab-list-controls {
+  padding: 3px 5px;
+}
+
+#show-all-tabs-label {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#show-all-tabs {
+  margin: 0;
+}
+
+.discarded {
+  color: #999;
 }

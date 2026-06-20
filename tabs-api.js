@@ -117,8 +117,10 @@ async function unloadTabWithId(tabId) {
 }
 
 async function unloadWindow(windowId) {
+  var currentWindow = await browser.windows.getCurrent();
+  var isCurrentWindow = windowId === currentWindow.id;
   await discardInactiveTabs({ windowId: windowId });
-  await switchToBlankTab(windowId, true);
+  await switchToBlankTab(windowId, isCurrentWindow);
   await discardInactiveTabs({ windowId: windowId });
   await switchToFirstUndiscardedTabIfExists(windowId);
 }
