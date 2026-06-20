@@ -1,2 +1,5 @@
 untracked/
 icons/
+outdated/
+.vscode/
+.claude/
