@@ -1,5 +1,7 @@
 # Unload Your Tabs
 
+![Revived with Claude](https://img.shields.io/badge/Revived_with-Claude-D97757?style=flat&logo=claude&logoColor=D97757) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Browser extension for Brave, Chrome and Firefox to unload all tabs or specific ones with one click.
 
 ## Core Features
