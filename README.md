@@ -40,9 +40,21 @@ Browser extension for Brave, Chrome and Firefox to unload all tabs or specific o
     - Right click → focus that window
 - **Unload Tab** right-click context menu item available on any open tab or page
 
-## How this extension achieves freeing a lot of memory if tab-heavy
+## Installation
 
-New/blank tabs require minimum memory usage. This extension not only unloads/discards all loaded tabs, but also creates a new/blank tab in every window, if it doesn't exist already, switches to it, and then unloads all tabs the user wants. So if you have many windows with many tabs, unloading all tabs will significantly reduce memory usage and improve your computer's/laptops performance.
+**Firefox:** Open [about:debugging](about:debugging) → This Firefox → Load Temporary Add-on, then select any file in the extension folder.
+
+**Chrome / Brave:** Open `chrome://extensions`, enable Developer mode, click Load unpacked, and select the extension folder.
+
+## Maximum Memory & CPU Relief: How It Works
+
+Blank tabs use minimal system resources. To achieve maximum resource savings, especially in tab-heavy environments, click `Unload all tabs` and this extension will:
+
+* **Create** a new, blank tab in each window (if one doesn't already exist).
+* **Switch** to the blank tab in each window
+* **Unload/Discard** all discardable tabs.
+
+By ensuring the active tab in every window is blank, the browser can aggressively reclaim memory and cut CPU usage — significantly improving machine responsiveness in one click.
 
 <!-- ## Usage of Blank Tabs
 
@@ -63,12 +75,6 @@ Some tabs cannot be unloaded/discarded:
 - Tab is in `editing` state
 - Tab is a browser specific tab
   - Examples: [about:addons](about:addons), [about:debugging](about:debugging)
-
-## Installation
-
-**Firefox:** Open [about:debugging](about:debugging) → This Firefox → Load Temporary Add-on, then select any file in the extension folder.
-
-**Chrome / Brave:** Open `chrome://extensions`, enable Developer mode, click Load unpacked, and select the extension folder.
 
 ## License
 
