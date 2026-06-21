@@ -1,11 +1,16 @@
+// Delegate all unload operations to the background script so they survive popup close.
+// In Chromium browsers, opening a blank tab (required to make discard work) focuses that
+// tab, which closes the popup and kills the popup's JS context mid-execution.
+function sendToBackground(message) {
+  browser.runtime.sendMessage(message).catch(() => {});
+}
+
 async function unloadListSelectedTab(e) {
-  var tabLink = e.currentTarget;
-  await unloadTabWithId(tabLink.tabId);
+  sendToBackground({ action: 'unloadTabWithId', tabId: e.currentTarget.tabId });
 }
 
 async function unloadListSelectedWindow(e) {
-  var windowId = e.currentTarget.windowId;
-  await unloadWindow(windowId);
+  sendToBackground({ action: 'unloadWindow', windowId: e.currentTarget.windowId });
 }
 
 async function switchToListSelectedWindow(e) {
@@ -157,12 +162,25 @@ async function removeTabLink(eventTabId) {
 
 async function unloadCurrentWindow() {
   var currentWindow = await browser.windows.getCurrent();
-  await unloadWindow(currentWindow.id);
+  sendToBackground({ action: 'unloadWindow', windowId: currentWindow.id });
 }
 
 async function unloadCurrentTab() {
   var activeTab = await getActiveTabOfCurrentWindow();
-  await unloadTabWithId(activeTab.id);
+  sendToBackground({ action: 'unloadTabWithId', tabId: activeTab.id });
+}
+
+// Override batch functions from tabs-api.js to also use background delegation.
+function unloadAllTabs() {
+  sendToBackground({ action: 'unloadAllTabs' });
+}
+
+function unloadAllTabsExceptCurrentTab() {
+  sendToBackground({ action: 'unloadAllTabsExceptCurrentTab' });
+}
+
+function unloadAllTabsExceptCurrentWindow() {
+  sendToBackground({ action: 'unloadAllTabsExceptCurrentWindow' });
 }
 
 async function updateTabLinkTitle(tab) {

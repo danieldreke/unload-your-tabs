@@ -38,3 +38,17 @@ browser.menus.onClicked.addListener(function(info, tab) {
 });
 
 updateBadgeTabCounter();
+
+browser.runtime.onMessage.addListener(function(message) {
+  if (message.action === 'unloadTabWithId') {
+    return unloadTabWithId(message.tabId);
+  } else if (message.action === 'unloadWindow') {
+    return unloadWindow(message.windowId);
+  } else if (message.action === 'unloadAllTabs') {
+    return unloadAllTabs();
+  } else if (message.action === 'unloadAllTabsExceptCurrentTab') {
+    return unloadAllTabsExceptCurrentTab();
+  } else if (message.action === 'unloadAllTabsExceptCurrentWindow') {
+    return unloadAllTabsExceptCurrentWindow();
+  }
+});

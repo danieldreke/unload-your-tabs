@@ -106,14 +106,16 @@ async function discardInactiveTabs(tabProperties={}) {
 async function unloadTabWithId(tabId) {
   var tab = await browser.tabs.get(tabId);
   if (tab.active) {
-    var windowId = tab.windowId;
-    var switchedToInactiveTab = await switchToLoadedInactiveTab(windowId);
-    if (!switchedToInactiveTab) {
-      await switchToBlankTab(windowId, true);
-    }
+    // Switch to a blank tab first so the browser allows discarding the original.
+    // Browsers silently refuse to discard the active tab, even immediately after
+    // switching away via tabs.update (race condition). The blank-tab intermediate
+    // step is the same pattern used by unloadWindow / unloadAllTabs.
+    await switchToBlankTab(tab.windowId, true);
   }
-  await discardTab(tab);
-  await switchToTabIfUndiscardedNonAboutTab(tabId);
+  await browser.tabs.discard(tabId);
+  if (tab.active) {
+    await switchToFirstUndiscardedTabIfExists(tab.windowId);
+  }
 }
 
 async function unloadWindow(windowId) {
