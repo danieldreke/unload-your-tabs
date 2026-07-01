@@ -7,8 +7,25 @@ if (typeof browser !== 'undefined' && browser.contextMenus && !browser.menus) {
   browser.menus = browser.contextMenus;
 }
 
+var BLANK_TAB_URL_PREFIXES = [
+  'about:blank',
+  'about:newtab',
+  'about:home',
+  'chrome://newtab/',
+  'chrome://new-tab-page/',
+  'edge://newtab/',
+];
+
+// Matches by prefix (not exact equality) since browsers append query strings
+// or trailing slashes to these URLs (e.g. 'chrome://new-tab-page/?...').
+// Also checks pendingUrl, since a tab just switched to or just created can
+// report an empty/stale url while the new-tab page is still navigating.
+function isBlankUrl(url) {
+  return !!url && BLANK_TAB_URL_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
+
 function isBlankTab(tab) {
-  return tab.url === 'about:newtab' || tab.url === 'about:home';
+  return isBlankUrl(tab.url) || isBlankUrl(tab.pendingUrl);
 }
 
 function isAboutTab(tab) {
@@ -133,21 +150,28 @@ async function getActiveTabOfCurrentWindow() {
 }
 
 async function unloadAllTabs() {
+  // Capture the focused window before touching other windows' active tabs,
+  // since switching tabs in background windows can steal OS focus in Chromium.
+  var currentWindow = await browser.windows.getCurrent();
   await discardInactiveTabs();
   await switchToBlankTabs();
   await discardInactiveTabs();
-  var currentWindow = await browser.windows.getCurrent();
   await switchToFirstUndiscardedTabIfExists(currentWindow.id);
+  await browser.windows.update(currentWindow.id, { focused: true });
 }
 
 async function unloadAllTabsExceptCurrentTab() {
+  var currentWindow = await browser.windows.getCurrent();
   await discardInactiveTabs();
   await switchToBlankTabs(true);
   await discardInactiveTabs();
+  await browser.windows.update(currentWindow.id, { focused: true });
 }
 
 async function unloadAllTabsExceptCurrentWindow() {
+  var currentWindow = await browser.windows.getCurrent();
   await discardInactiveTabs({ currentWindow: false });
   await switchToBlankTabs(true);
   await discardInactiveTabs({ currentWindow: false });
+  await browser.windows.update(currentWindow.id, { focused: true });
 }
